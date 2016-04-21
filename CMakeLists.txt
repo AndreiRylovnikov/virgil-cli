@@ -72,21 +72,6 @@ if (POINTER_SIZE EQUAL 8)
 endif ()
 string (TOLOWER "${CMAKE_SYSTEM_NAME}" SYSTEM_NAME)
 
-# Check compiler version
-if (MSVC)
-    # MSVC14
-    if (NOT MSVC_VERSION EQUAL 1900)
-        message (FATAL_ERROR "Unsupported MSVC version found. Allowed versions: Visual Studio 2015 (MSVC14)")
-    endif (NOT MSVC_VERSION EQUAL 1900)
-endif (MSVC)
-
-# Configure path to local libraries
-if (MSVC)
-    set (EXT_PREBUILD_MSVC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext/prebuild/msvc")
-    set (CMAKE_PREFIX_PATH "${EXT_PREBUILD_MSVC_DIR}/${SYSTEM_ARCH}/libcurl" ${CMAKE_PREFIX_PATH})
-    set (CURL_LIBRARY_DLL "${EXT_PREBUILD_MSVC_DIR}/${SYSTEM_ARCH}/libcurl/lib/libcurl.dll")
-endif (MSVC)
-
 # Configure version
 set (CLI_VERSION_MAJOR 2)
 set (CLI_VERSION_MINOR 0)
@@ -98,19 +83,17 @@ message (STATUS "CLI version: " ${CLI_VERSION})
 set (INSTALL_BIN_DIR_NAME bin CACHE STRING "Installation directory name for executables")
 set (INSTALL_MAN_DIR_NAME "share/man" CACHE STRING "Installation directory name for man pages")
 
-if (UNIX)
-    set (CONFIG_FILE_DIR_NAME $ENV{HOME}/.virgil_cli/)
-else()
-    set (CONFIG_FILE_DIR_NAME $ENV{APPDATA}/virgil-cli)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set (CONFIG_FILE_DIR_NAME "$ENV{HOME}/.config/virgil-cli")
+elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set (CONFIG_FILE_DIR_NAME "$ENV{HOME}/Library/Application Support/virgil-cli")
+else ()
+    # win32
 endif ()
-
-message (STATUS ${CONFIG_FILE_DIR_NAME})
 
 set (INSTALL_CONFIG_FILE_DIR_NAME ${CONFIG_FILE_DIR_NAME} CACHE STRING "Installation directory name for config file")
 
-message (STATUS ${INSTALL_CONFIG_FILE_DIR_NAME})
-
-set(TOKEN "eyJpZCI6IjFkNzgzNTA1LTk1NGMtNDJhZC1hZThjLWQyOGFiYmNhMGM1NyIsImFwcGxpY2F0aW9uX2NhcmRfaWQiOiIwNGYyY2Y2NS1iZDY2LTQ3N2EtOGFiZi1hMDAyYWY4YjdmZWYiLCJ0dGwiOi0xLCJjdGwiOi0xLCJwcm9sb25nIjowfQ==.MIGZMA0GCWCGSAFlAwQCAgUABIGHMIGEAkAV1PHR3JaDsZBCl+6r/N5R5dATW9tcS4c44SwNeTQkHfEAlNboLpBBAwUtGhQbadRd4N4gxgm31sajEOJIYiGIAkADCz+MncOO74UVEEot5NEaCtvWT7fIW9WaF6JdH47Z7kTp0gAnq67cPbS0NDUyovAqILjmOmg1zAL8A4+ii+zd")
+set(TOKEN "eyJpZCI6ImM0OWVmOWQ4LWJiNTQtNGY2Zi04NzM0LTFjNDVjNWIxODBlMiIsImFwcGxpY2F0aW9uX2NhcmRfaWQiOiJiMmJlYzNjMS05ZjU0LTQyMDctYTY0Ny00YmE3NDI4MDY2NTMiLCJ0dGwiOi0xLCJjdGwiOi0xLCJwcm9sb25nIjowfQ==.MIGZMA0GCWCGSAFlAwQCAgUABIGHMIGEAkAC4w0Z6XFoGE+4VJk1jJlE3Vtaxwd7qSoEi16PgVaPQ1N/ZQd0hT/fkdueH2X4SYE+dd0Q3AIpMaJYYS56kptqAkAAm/noIrmVmcydoKD5xytXvRKRME5AhL/tifHbpyHnilPP0QhnoLVbUR6lo5uqPt6xzHnEok9omdREhq5wQ0Zx")
 
 # Configure application token
 set (VIRGIL_ACCESS_TOKEN ${TOKEN} CACHE STRING
@@ -139,14 +122,9 @@ virgil_add_dependency ("virgil-sdk"
 )
 include_directories (${VIRGIL_SDK_INCLUDE_DIRS})
 
-include (json)
-include_directories (${JSON_INCLUDE_DIRS})
-
-# Use tclap lib
+# Use ext lib
 include_directories ("${CMAKE_CURRENT_SOURCE_DIR}/ext")
-message (STATUS "TCLAP library: ON")
 
-#
 include_directories ("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 # Grab source directory tree
@@ -169,7 +147,6 @@ target_link_libraries (virgil_cli
 )
 
 add_dependencies (virgil_cli
-    json
     ${VIRGIL_CRYPTO_DEPENDENCIES}
     ${VIRGIL_SDK_DEPENDENCIES}
 )
@@ -178,80 +155,20 @@ set_target_properties (virgil_cli PROPERTIES OUTPUT_NAME "virgil")
 # Install virgil_cli
 install (TARGETS virgil_cli DESTINATION ${INSTALL_BIN_DIR_NAME})
 
-if (MSVC)
-    install (PROGRAMS "${CURL_LIBRARY_DLL}" DESTINATION "${INSTALL_BIN_DIR_NAME}")
-    install (PROGRAMS "${EXT_PREBUILD_MSVC_DIR}/install/vc_redist.${SYSTEM_ARCH}.exe" DESTINATION "install")
-endif (MSVC)
 
-if (UNIX)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     install (
         FILES ${CMAKE_CURRENT_SOURCE_DIR}/data/virgil-cli-config.ini
         DESTINATION ${INSTALL_CONFIG_FILE_DIR_NAME}
     )
     install (DIRECTORY "doc/man/" DESTINATION ${INSTALL_MAN_DIR_NAME})
+elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    install (
+        FILES ${CMAKE_CURRENT_SOURCE_DIR}/data/virgil-cli-config.ini
+        DESTINATION ${INSTALL_CONFIG_FILE_DIR_NAME}
+    )
+    install (DIRECTORY "doc/man/" DESTINATION ${INSTALL_MAN_DIR_NAME})
+else ()
+    # win32
 endif ()
 
-# Pack
-set (CPACK_PACKAGE_DESCRIPTION_SUMMARY
-    "The Virgil Security CLI program is a command line tool for using Virgil Security stack functionality. "
-    "It can be used to encrypt, decrypt, sign and verify data. "
-    "Functionality also includes interaction with Virgil Public Keys Service and Virgil Private Keys Service."
-)
-set (CPACK_PACKAGE_NAME "Virgil Security CLI")
-set (CPACK_PACKAGE_VENDOR "Virgil Security Inc.")
-set (CPACK_PACKAGE_VERSION_MAJOR "${CLI_VERSION_MAJOR}")
-set (CPACK_PACKAGE_VERSION_MINOR "${CLI_VERSION_MINOR}")
-set (CPACK_PACKAGE_VERSION_PATCH "${CLI_VERSION_PATCH}")
-set (CPACK_PACKAGE_FILE_NAME
-    "virgil-cli-${CLI_VERSION_MAJOR}.${CLI_VERSION_MINOR}.${CLI_VERSION_PATCH}-${SYSTEM_NAME}-${SYSTEM_ARCH}"
-)
-set (CPACK_PACKAGE_INSTALL_DIRECTORY "Virgil Security CLI")
-set (CPACK_PACKAGE_INSTALL_REGISTRY_KEY
-        "Virgil Security CLI ${CLI_VERSION_MAJOR}.${CLI_VERSION_MINOR}.${CLI_VERSION_PATCH}")
-set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-
-if (MSVC)
-    set (CPACK_NSIS_CONTACT "support@virgilsecurity.com")
-    set (CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_INSTALL_REGISTRY_KEY}")
-
-    string (REPLACE "\\" "\\\\" APPDATA "$ENV{APPDATA}")
-    message (STATUS ${APPDATA})
-
-    string (REPLACE "/" "\\\\" CURRENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-    message (STATUS ${CURRENT_DIR})
-
-    set (CPACK_NSIS_EXTRA_INSTALL_COMMANDS
-        "CreateDirectory ${APPDATA}\\\\virgil-cli
-        SetOutPath ${APPDATA}\\\\virgil-cli
-        File ${CURRENT_DIR}\\\\data\\\\virgil-cli.config"
-    )
-
-    set (CPACK_NSIS_EXTRA_INSTALL_COMMANDS
-        "${CPACK_NSIS_EXTRA_INSTALL_COMMANDS}"
-        "Push \\\"PATH\\\""
-        "Push \\\"A\\\""
-        "Push \\\"HKLM\\\""
-        "Push \\\"$INSTDIR\\\\${INSTALL_BIN_DIR_NAME}\\\""
-        "Call AddToPath"
-        "Pop \\\$0"
-        "ExecWait '\\\"$INSTDIR\\\\install\\\\vc_redist.${SYSTEM_ARCH}.exe\\\" /install /quiet'"
-    )
-
-    string (REGEX REPLACE ";" "\n" CPACK_NSIS_EXTRA_INSTALL_COMMANDS "${CPACK_NSIS_EXTRA_INSTALL_COMMANDS}")
-
-    set (CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
-        # Remove executable folder from the PATH
-        "Push \\\"PATH\\\""
-        "Push \\\"R\\\""
-        "Push \\\"HKLM\\\""
-        "Push \\\"$INSTDIR\\\\${INSTALL_BIN_DIR_NAME}\\\""
-        "Call un.RemoveFromPath"
-        "Pop \\\$0"
-        "Delete ${APPDATA}\\\\virgil-cli"
-    )
-
-    string (REGEX REPLACE ";" "\n" CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "${CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS}")
-
-
-endif (MSVC)
-INCLUDE(CPack)

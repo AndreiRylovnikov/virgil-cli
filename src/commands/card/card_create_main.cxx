@@ -78,7 +78,7 @@ int MAIN(int argc, char** argv) {
 
         examples.push_back(
             "Create a Card with an unconfirmed Identity:\n"
-            "virgil card-create -d email:user@domain.com --public_key alice/public.key -k alice/private.key "
+            "virgil card-create -d email:user@domain.com --public-key alice/public.key -k alice/private.key "
             "-o alice/my_card.vcard\n");
 
         examples.push_back("Create a connection with an already existing Card with an unconfirmed"
@@ -142,7 +142,8 @@ int MAIN(int argc, char** argv) {
 
         vsdk::Credentials credentials(privateKey, privateKeyPassword);
 
-        vsdk::ServicesHub servicesHub(VIRGIL_ACCESS_TOKEN, vcli::readConfigFile());
+        vcli::ConfigFile configFile = vcli::readConfigFile(verboseArg.isSet());
+        vsdk::ServicesHub servicesHub(configFile.virgilAccessToken, configFile.serviceUri);
         vsdk::models::CardModel card;
         if (validatedIdentityArg.isSet()) {
             vsdk::dto::ValidatedIdentity validatedIdentity =

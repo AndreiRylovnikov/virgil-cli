@@ -59,7 +59,6 @@
 
 #include <cli/ini.hpp>
 #include <cli/pair.h>
-#include <cli/config.h>
 #include <cli/version.h>
 #include <cli/util.h>
 
@@ -95,21 +94,29 @@ static void setStdinEcho(bool enable) {
 #endif
 }
 
-vsdk::ServiceUri virgil::cli::readConfigFile() {
-    std::string pathConfigFile = INSTALL_CONFIG_FILE_DIR_NAME + "virgil-cli-config.ini";
+virgil::cli::ConfigFile virgil::cli::readConfigFile(const bool verbose) {
+    std::string pathConfigFile = INSTALL_CONFIG_FILE_DIR_NAME + "/virgil-cli-config.ini";
     std::ifstream inFile(pathConfigFile, std::ios::in | std::ios::binary);
     if (!inFile) {
-        std::cout << "Can't read config file:\n" + pathConfigFile << std::endl;
-        return vsdk::ServiceUri();
+        if (verbose) {
+            std::cout << "Can't read config file:\n" + pathConfigFile << std::endl;
+        }
+        return ConfigFile();
     }
 
     try {
         std::string ini((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
         std::stringstream ss(ini);
         INI::Parser iniParser(ss);
-        return vsdk::ServiceUri(iniParser.top()("URI")["identity-service"],
-                                iniParser.top()("URI")["public-key-service"],
-                                iniParser.top()("URI")["private-key-service"]);
+
+        ConfigFile configFile;
+        configFile.virgilAccessToken = iniParser.top()("Virgil Access Token")["token"];
+        configFile.serviceUri =
+            vsdk::ServiceUri(iniParser.top()("URI")["identity-service"], iniParser.top()("URI")["public-key-service"],
+                             iniParser.top()("URI")["private-key-service"]);
+
+        return configFile;
+
     } catch (std::runtime_error& exception) {
         std::string error = "Can't parse config file " + pathConfigFile + ".\n";
         error += exception.what();
@@ -305,7 +312,9 @@ std::vector<vsdk::models::CardModel> virgil::cli::getRecipientCards(const std::s
                                                                     const bool includeUnconrimedCard) {
 
     std::vector<vsdk::models::CardModel> recipientCards;
-    vsdk::ServicesHub servicesHub(VIRGIL_ACCESS_TOKEN, virgil::cli::readConfigFile());
+    ConfigFile configFile = readConfigFile(false);
+    vsdk::ServicesHub servicesHub(configFile.virgilAccessToken, configFile.serviceUri);
+
     if (type == "id") {
         recipientCards.push_back(servicesHub.card().get(value));
     } else if (type == "email") {
