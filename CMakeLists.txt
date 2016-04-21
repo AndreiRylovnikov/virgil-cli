@@ -122,9 +122,16 @@ virgil_add_dependency ("virgil-sdk"
 )
 include_directories (${VIRGIL_SDK_INCLUDE_DIRS})
 
-# Use ext lib
+if (CMAKE_TOOLCHAIN_FILE)
+   list (APPEND CMAKE_ARGS
+               -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
+)
+endif (CMAKE_TOOLCHAIN_FILE)
+
+# Use ext header only libs
 include_directories ("${CMAKE_CURRENT_SOURCE_DIR}/ext")
 
+# Use virgil-cli headers
 include_directories ("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 # Grab source directory tree
