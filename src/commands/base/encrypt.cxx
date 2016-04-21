@@ -75,7 +75,7 @@ static size_t add_recipients(const std::vector<std::string>& recipientsData, con
  * @param recipientData - <type:value>, where type can be [pass|key|email|phone|domain].
  * @param cipher - recipients added to.
  */
-static void add_recipient(const std::string& recipientType, const std::string& recipientValue,
+static bool add_recipient(const std::string& recipientType, const std::string& recipientValue,
                           const bool includeUnconrimedCard, vcrypto::VirgilStreamCipher* cipher);
 
 #ifdef SPLIT_CLI
@@ -229,20 +229,26 @@ size_t add_recipients(const std::vector<std::string>& recipientsData, const bool
         std::string recipientType = recipientPair.first;
         std::string recipientValue = recipientPair.second;
         try {
-            add_recipient(recipientType, recipientValue, includeUnconrimedCard, cipher);
+            bool success = add_recipient(recipientType, recipientValue, includeUnconrimedCard, cipher);
+            if (success) {
+                ++addedRecipientsCount;
+            }
         } catch (std::exception& exception) {
             throw std::invalid_argument("cannot add recipient. Error " + recipientType + ":" + recipientValue + "\n" +
                                         exception.what());
         }
-        ++addedRecipientsCount;
     }
     return addedRecipientsCount;
 }
 
-void add_recipient(const std::string& recipientType, const std::string& recipientValue,
+bool add_recipient(const std::string& recipientType, const std::string& recipientValue,
                    const bool includeUnconrimedCard, vcrypto::VirgilStreamCipher* cipher) {
     if (recipientType == "password") {
         vcrypto::VirgilByteArray pwd = virgil::crypto::str2bytes(recipientValue);
+        if (pwd.empty()) {
+            return 0;
+        }
+
         cipher->addPasswordRecipient(pwd);
     } else if (recipientType == "pubkey") {
         //  public.key:<recipient-id>
@@ -250,13 +256,27 @@ void add_recipient(const std::string& recipientType, const std::string& recipien
         std::string pathToPublicKeyFile = pubkeyRecipientId.first;
         std::string recipientId = pubkeyRecipientId.second;
         auto publicKey = vcli::readFileBytes(pathToPublicKeyFile);
+        if (recipientId.empty()) {
+            return 0;
+        }
+
+        if (publicKey.empty()) {
+            return 0;
+        }
+
         cipher->addKeyRecipient(vcrypto::str2bytes(recipientId), publicKey);
     } else {
         // Else recipientType [id|vcard|email]
         std::vector<vsdk::models::CardModel> recipientsCard =
             vcli::getRecipientCards(recipientType, recipientValue, includeUnconrimedCard);
+        if (recipientsCard.empty()) {
+            return 0;
+        }
+
         for (const auto& recipientCard : recipientsCard) {
             cipher->addKeyRecipient(vcrypto::str2bytes(recipientCard.getId()), recipientCard.getPublicKey().getKey());
         }
     }
+
+    return 1;
 }
