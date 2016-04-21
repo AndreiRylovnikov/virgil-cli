@@ -2739,7 +2739,9 @@ class basic_json
             catch (std::out_of_range&)
             {
                 // create better exception explanation
-                throw std::out_of_range("array index " + std::to_string(idx) + " is out of range");
+                std::ostringstream ostr;
+                ostr << idx;
+                throw std::out_of_range(std::string("array index ") + ostr.str() + " is out of range");
             }
         }
         else
@@ -2783,7 +2785,9 @@ class basic_json
             catch (std::out_of_range&)
             {
                 // create better exception explanation
-                throw std::out_of_range("array index " + std::to_string(idx) + " is out of range");
+                std::ostringstream os;
+                os << idx;
+                throw std::out_of_range(std::string("array index ") + os.str() + " is out of range");
             }
         }
         else
@@ -5789,7 +5793,9 @@ class basic_json
                     // use integer array index as key
                     case value_t::array:
                     {
-                        return std::to_string(array_index);
+                        std::ostringstream ostr;
+                        ostr << array_index;
+                        return ostr.str();
                     }
 
                     // use key from the object
@@ -7735,8 +7741,10 @@ basic_json_parser_64:
                         case 'u':
                         {
                             // get code xxxx from uxxxx
-                            auto codepoint = std::strtoul(std::string(reinterpret_cast<typename string_t::const_pointer>(i + 1),
-                                                          4).c_str(), nullptr, 16);
+                            std::stringstream converter(
+                                    std::string(reinterpret_cast<typename string_t::const_pointer>(i + 1), 4).c_str());
+                            unsigned long int codepoint;
+                            converter >> std::hex >> codepoint;
 
                             // check if codepoint is a high surrogate
                             if (codepoint >= 0xD800 and codepoint <= 0xDBFF)
@@ -7748,8 +7756,10 @@ basic_json_parser_64:
                                 }
 
                                 // get code yyyy from uxxxx\uyyyy
-                                auto codepoint2 = std::strtoul(std::string(reinterpret_cast<typename string_t::const_pointer>
-                                                               (i + 7), 4).c_str(), nullptr, 16);
+                                std::stringstream converter(
+                                        std::string(reinterpret_cast<typename string_t::const_pointer>(i + 7), 4).c_str());
+                                unsigned long int codepoint2;
+                                converter >> std::hex >> codepoint2;
                                 result += to_unicode(codepoint, codepoint2);
                                 // skip the next 10 characters (xxxx\uyyyy)
                                 i += 10;
@@ -7798,19 +7808,28 @@ basic_json_parser_64:
         */
         long double str_to_float_t(long double* /* type */, char** endptr) const
         {
-            return std::strtold(reinterpret_cast<typename string_t::const_pointer>(m_start), endptr);
+            std::stringstream converter(std::string(reinterpret_cast<typename string_t::const_pointer>(m_start)));
+            long double val;
+            converter >> val;
+            return val;
         }
 
         /// @copydoc str_to_float_t
         double str_to_float_t(double*, char** endptr) const
         {
-            return std::strtod(reinterpret_cast<typename string_t::const_pointer>(m_start), endptr);
+            std::stringstream converter(std::string(reinterpret_cast<typename string_t::const_pointer>(m_start)));
+            double val;
+            converter >> val;
+            return val;
         }
 
         /// @copydoc str_to_float_t
         float str_to_float_t(float*, char** endptr) const
         {
-            return std::strtof(reinterpret_cast<typename string_t::const_pointer>(m_start), endptr);
+            std::stringstream converter(std::string(reinterpret_cast<typename string_t::const_pointer>(m_start)));
+            float val;
+            converter >> val;
+            return val;
         }
 
         /*!
