@@ -39,7 +39,7 @@
 namespace virgil {
 
 const char* cli_version() {
-    return "@CLI_VERSION@";
+    return "2.0.0";
 }
 
 } // virgil
