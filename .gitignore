@@ -2,6 +2,7 @@
 build*/
 docs/html/
 docs/latex/
+nbproject/
 
 #####
 # OS X temporary files that should never be committed
