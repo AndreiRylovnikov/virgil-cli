@@ -34,39 +34,20 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if defined(__linux)
+#ifndef KERNEL_HELPER_H
+#define KERNEL_HELPER_H
 
-#ifndef VIRGILKERNEL_COMMUNICATOR_H
-#define VIRGILKERNEL_COMMUNICATOR_H
+#include <cli/kernel_communication.h>
 
-#include <virgil/crypto/VirgilByteArray.h>
+#define KERNEL_PARAMS_INJECT(CMD) TCLAP::SwitchArg kernelArg("K", "kernel", "Pass data to linux kernel", false);                        \
+                                  CMD.add(kernelArg);                                                                                   \
+                                  TCLAP::ValueArg<std::string> identifierArg("I", "cmd-identifier", "Request id.", false, "", "arg");   \
+                                  CMD.add(identifierArg);
 
-using namespace virgil::crypto;  
+#define KERNEL_SEND_DATA(COMMAND_NAME, DATA) do {                                                               \
+            if (kernelArg.isSet() && identifierArg.isSet()) {                                                   \
+                VirgilKernelCommunicator::send(identifierArg.getValue(), COMMAND_NAME, DATA);                   \
+            }                                                                                                   \
+        } while(0);
 
-namespace virgil { namespace crypto {
-
-/**
- * @brief This class provides communication methods for kernel module.
- */    
-class VirgilKernelCommunicator {
-
-public:
-    /**
-     * @brief Sends prepared data to kernel module.
-     * @param requestID - identifier of current request
-     * @param command - current command name
-     * @param data - data to be sent.
-     * @return "true" if data has been sent successfully.
-     */
-    static bool send(const std::string & requestID, const std::string & command, const VirgilByteArray & data);
-
-private:
-    static const int _virgilNetlink = 17;   /**< Netlink protocol*/
-    
-};
-
-}}
-
-#endif /* VIRGILKERNEL_COMMUNICATOR_H */
-
-#endif /* __linux */
+#endif /* KERNEL_HELPER_H */

@@ -46,9 +46,21 @@
 #include <cstring>
 #include <unistd.h>
 
+#include <virgil/crypto/VirgilByteArrayUtils.h>
+
 namespace virgil { namespace crypto {
     
-    bool VirgilKernelCommunicator::send(const VirgilByteArray & data) {
+    bool VirgilKernelCommunicator::send(const std::string & requestID, const std::string & command, const VirgilByteArray & data) {
+        VirgilByteArray package;
+        
+        package.insert(package.end(), requestID.begin(), requestID.end());
+        package.push_back(0);
+        
+        package.insert(package.end(), command.begin(), command.end());
+        package.push_back(0);
+        
+        package.insert(package.end(), data.begin(), data.end());
+        
         struct sockaddr_nl s_nladdr, d_nladdr;
         struct msghdr msg;
         struct nlmsghdr *nlh = NULL;
@@ -71,10 +83,10 @@ namespace virgil { namespace crypto {
         d_nladdr.nl_pid = 0; /* destined to kernel */
 
         /* Fill the netlink message header */
-        const size_t _sz(sizeof(struct nlmsghdr) + data.size());
+        const size_t _sz(sizeof(struct nlmsghdr) + package.size());
         nlh = (struct nlmsghdr *) malloc(_sz);
         memset(nlh, 0, _sz);
-        memcpy(NLMSG_DATA(nlh), data.data(), data.size());
+        memcpy(NLMSG_DATA(nlh), package.data(), package.size());
         nlh->nlmsg_len = _sz;
         nlh->nlmsg_pid = getpid();
         nlh->nlmsg_flags = 1;

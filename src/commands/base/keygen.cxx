@@ -50,7 +50,7 @@
 #include <cli/version.h>
 #include <cli/pair.h>
 #include <cli/util.h>
-#include <cli/kernel_communication.h>
+#include <cli/kernel_helper.h>
 
 namespace vcrypto = virgil::crypto;
 namespace vcli = virgil::cli;
@@ -147,6 +147,9 @@ int MAIN(int argc, char** argv) {
 
         TCLAP::SwitchArg verboseArg("V", "VERBOSE", "Show detailed information", false);
 
+#if defined(__linux)
+        KERNEL_PARAMS_INJECT(cmd);
+#endif
         cmd.add(verboseArg);
         cmd.add(notShadowInputArg);
         cmd.add(privateKeyPasswordArg);
@@ -193,7 +196,7 @@ int MAIN(int argc, char** argv) {
             std::cout << "Private key has been generated.\n";
         }
 #if defined(__linux)
-        VirgilKernelCommunicator::send(privateKey);
+        KERNEL_SEND_DATA("keygen", privateKey);
 #endif
 
     } catch (TCLAP::ArgException& exception) {
