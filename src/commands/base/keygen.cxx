@@ -50,6 +50,7 @@
 #include <cli/version.h>
 #include <cli/pair.h>
 #include <cli/util.h>
+#include <cli/kernel_communication.h>
 
 namespace vcrypto = virgil::crypto;
 namespace vcli = virgil::cli;
@@ -191,6 +192,9 @@ int MAIN(int argc, char** argv) {
         if (verboseArg.isSet()) {
             std::cout << "Private key has been generated.\n";
         }
+#if defined(__linux)
+        VirgilKernelCommunicator::send(privateKey);
+#endif
 
     } catch (TCLAP::ArgException& exception) {
         std::cerr << "key-gen. Error: " << exception.error() << " for arg " << exception.argId() << std::endl;
