@@ -114,7 +114,7 @@ int MAIN(int argc, char** argv) {
         }
 
         // Create signer
-        vcrypto::VirgilStreamSigner signer;
+        vcrypto::VirgilStreamSigner signer(vcrypto::foundation::VirgilHash::sha256());
 
         // Sign data
         vcrypto::stream::VirgilStreamDataSource dataSource(*inStream);
