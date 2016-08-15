@@ -175,7 +175,7 @@ int MAIN(int argc, char** argv) {
         }
 
         // Create signer
-        vcrypto::VirgilStreamSigner signer;
+		vcrypto::VirgilStreamSigner signer(vcrypto::foundation::VirgilHash::sha256());
         bool verified = signer.verify(dataSource, sign, publicKey);
         if (verified) {
             if (returnStatusArg.getValue()) {
